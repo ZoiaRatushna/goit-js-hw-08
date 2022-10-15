@@ -18,6 +18,7 @@
   "homepage": "https://github.com/ZoiaRatushna/goit-js-hw-08#readme",
   "keywords": [],
   "dependencies": {
+    "@vimeo/player": "^2.18.0",
     "simplelightbox": "^2.10.4"
   }
 }
