@@ -1,0 +1,23 @@
+{
+  "name": "goit-js-hw-08",
+  "version": "1.0.0",
+  "description": "Критерії приймання\r Створено репозиторій goit-js-hw-07.\r Домашня робота містить два посилання: на вихідні файли і робочу сторінку на GitHub Pages.\r В консолі відсутні помилки і попередження під час відкриття живої сторінки завдання.\r Імена змінних і функцій - зрозумілі та описові.\r Код відформатований за допомогою Prettier.\r Стартові файли\r Завантажуй стартові файли з базовою розміткою, готовими стилями та підключеними файлами скриптів для кожного завдання. Скопіюй їх собі у проект.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZoiaRatushna/goit-js-hw-08.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ZoiaRatushna/goit-js-hw-08/issues"
+  },
+  "homepage": "https://github.com/ZoiaRatushna/goit-js-hw-08#readme",
+  "keywords": [],
+  "dependencies": {
+    "simplelightbox": "^2.10.4"
+  }
+}
