@@ -4,7 +4,8 @@
   "description": "Критерії приймання\r Створено репозиторій goit-js-hw-07.\r Домашня робота містить два посилання: на вихідні файли і робочу сторінку на GitHub Pages.\r В консолі відсутні помилки і попередження під час відкриття живої сторінки завдання.\r Імена змінних і функцій - зрозумілі та описові.\r Код відформатований за допомогою Prettier.\r Стартові файли\r Завантажуй стартові файли з базовою розміткою, готовими стилями та підключеними файлами скриптів для кожного завдання. Скопіюй їх собі у проект.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "parcel index.html",
+    "build": "parcel build *.html --public-url /parcel-project-template/"
   },
   "repository": {
     "type": "git",
@@ -19,6 +20,15 @@
   "keywords": [],
   "dependencies": {
     "@vimeo/player": "^2.18.0",
+    "lodash.throttle": "^4.1.1",
+    "modern-normalize": "^1.1.0",
     "simplelightbox": "^2.10.4"
-  }
+  },
+  "devDependencies": {
+    "@parcel/transformer-sass": "^2.6.0",
+    "parcel": "^2.6.0",
+    "parcel-reporter-clean-dist": "^1.0.4",
+    "posthtml-include": "^1.7.4"
+  },
+  "browserslist": "> 0.5%, last 2 versions, not dead"
 }
