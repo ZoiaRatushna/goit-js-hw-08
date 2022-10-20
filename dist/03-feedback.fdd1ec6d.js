@@ -142,7 +142,7 @@
       this[globalName] = mainExports;
     }
   }
-})({"lwWqK":[function(require,module,exports) {
+})({"dfXnt":[function(require,module,exports) {
 "use strict";
 var global = arguments[3];
 var HMR_HOST = null;
@@ -150,7 +150,7 @@ var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
 module.bundle.HMR_BUNDLE_ID = "8c507c38fdd1ec6d";
-/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, globalThis, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
+/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, importScripts */ /*::
 import type {
   HMRAsset,
   HMRMessage,
@@ -180,8 +180,6 @@ interface ParcelModule {
 interface ExtensionContext {
   runtime: {|
     reload(): void,
-    getURL(url: string): string;
-    getManifest(): {manifest_version: number, ...};
   |};
 }
 declare var module: {bundle: ParcelRequire, ...};
@@ -191,10 +189,6 @@ declare var HMR_ENV_HASH: string;
 declare var HMR_SECURE: boolean;
 declare var chrome: ExtensionContext;
 declare var browser: ExtensionContext;
-declare var __parcel__import__: (string) => Promise<void>;
-declare var __parcel__importScripts__: (string) => Promise<void>;
-declare var globalThis: typeof self;
-declare var ServiceWorkerGlobalScope: Object;
 */ var OVERLAY_ID = "__parcel__error__overlay__";
 var OldModule = module.bundle.Module;
 function Module(moduleName) {
@@ -225,8 +219,7 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
     var hostname = getHostname();
     var port = getPort();
     var protocol = HMR_SECURE || location.protocol == "https:" && !/localhost|127.0.0.1|0.0.0.0/.test(hostname) ? "wss" : "ws";
-    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Web extension context
-    var extCtx = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome; // Safari doesn't support sourceURL in error stacks.
+    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Safari doesn't support sourceURL in error stacks.
     // eval may also be disabled via CSP, so do a quick check.
     var supportsSourceURL = false;
     try {
@@ -254,7 +247,12 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
                     var id = assetsToAccept[i][1];
                     if (!acceptedAssets[id]) hmrAcceptRun(assetsToAccept[i][0], id);
                 }
-            } else fullReload();
+            } else if ("reload" in location) location.reload();
+            else {
+                // Web extension context
+                var ext = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome;
+                if (ext && ext.runtime && ext.runtime.reload) ext.runtime.reload();
+            }
         }
         if (data.type === "error") {
             // Log parcel errors to console
@@ -281,7 +279,7 @@ function removeErrorOverlay() {
     var overlay = document.getElementById(OVERLAY_ID);
     if (overlay) {
         overlay.remove();
-        console.log("[parcel] ✨ Error resolved");
+        console.log("[parcel] \u2728 Error resolved");
     }
 }
 function createErrorOverlay(diagnostics) {
@@ -310,10 +308,6 @@ ${frame.code}`;
     errorHTML += "</div>";
     overlay.innerHTML = errorHTML;
     return overlay;
-}
-function fullReload() {
-    if ("reload" in location) location.reload();
-    else if (extCtx && extCtx.runtime && extCtx.runtime.reload) extCtx.runtime.reload();
 }
 function getParents(bundle, id) /*: Array<[ParcelRequire, string]> */ {
     var modules = bundle.modules;
@@ -355,32 +349,6 @@ function reloadCSS() {
         cssTimeout = null;
     }, 50);
 }
-function hmrDownload(asset) {
-    if (asset.type === "js") {
-        if (typeof document !== "undefined") {
-            let script = document.createElement("script");
-            script.src = asset.url + "?t=" + Date.now();
-            if (asset.outputFormat === "esmodule") script.type = "module";
-            return new Promise((resolve, reject)=>{
-                var _document$head;
-                script.onload = ()=>resolve(script);
-                script.onerror = reject;
-                (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
-            });
-        } else if (typeof importScripts === "function") {
-            // Worker scripts
-            if (asset.outputFormat === "esmodule") return import(asset.url + "?t=" + Date.now());
-            else return new Promise((resolve, reject)=>{
-                try {
-                    importScripts(asset.url + "?t=" + Date.now());
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        }
-    }
-}
 async function hmrApplyUpdates(assets) {
     global.parcelHotUpdate = Object.create(null);
     let scriptsToRemove;
@@ -393,20 +361,24 @@ async function hmrApplyUpdates(assets) {
         // This path is also taken if a CSP disallows eval.
         if (!supportsSourceURL) {
             let promises = assets.map((asset)=>{
-                var _hmrDownload;
-                return (_hmrDownload = hmrDownload(asset)) === null || _hmrDownload === void 0 ? void 0 : _hmrDownload.catch((err)=>{
-                    // Web extension bugfix for Chromium
-                    // https://bugs.chromium.org/p/chromium/issues/detail?id=1255412#c12
-                    if (extCtx && extCtx.runtime && extCtx.runtime.getManifest().manifest_version == 3) {
-                        if (typeof ServiceWorkerGlobalScope != "undefined" && global instanceof ServiceWorkerGlobalScope) {
-                            extCtx.runtime.reload();
-                            return;
+                if (asset.type === "js") {
+                    if (typeof document !== "undefined") {
+                        let script = document.createElement("script");
+                        script.src = asset.url;
+                        return new Promise((resolve, reject)=>{
+                            var _document$head;
+                            script.onload = ()=>resolve(script);
+                            script.onerror = reject;
+                            (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
+                        });
+                    } else if (typeof importScripts === "function") return new Promise((resolve, reject)=>{
+                        try {
+                            importScripts(asset.url);
+                        } catch (err) {
+                            reject(err);
                         }
-                        asset.url = extCtx.runtime.getURL("/__parcel_hmr_proxy__?url=" + encodeURIComponent(asset.url + "?t=" + Date.now()));
-                        return hmrDownload(asset);
-                    }
-                    throw err;
-                });
+                    });
+                }
             });
             scriptsToRemove = await Promise.all(promises);
         }
@@ -443,7 +415,6 @@ function hmrApply(bundle, asset) {
             if (supportsSourceURL) // Global eval. We would use `new Function` here but browser
             // support for source maps is better with eval.
             (0, eval)(asset.output);
-             // $FlowFixMe
             let fn = global.parcelHotUpdate[asset.id];
             modules[asset.id] = [
                 fn,
@@ -452,23 +423,23 @@ function hmrApply(bundle, asset) {
         } else if (bundle.parent) hmrApply(bundle.parent, asset);
     }
 }
-function hmrDelete(bundle, id) {
+function hmrDelete(bundle, id1) {
     let modules = bundle.modules;
     if (!modules) return;
-    if (modules[id]) {
+    if (modules[id1]) {
         // Collect dependencies that will become orphaned when this module is deleted.
-        let deps = modules[id][1];
+        let deps = modules[id1][1];
         let orphans = [];
         for(let dep in deps){
             let parents = getParents(module.bundle.root, deps[dep]);
             if (parents.length === 1) orphans.push(deps[dep]);
         } // Delete the module. This must be done before deleting dependencies in case of circular dependencies.
-        delete modules[id];
-        delete bundle.cache[id]; // Now delete the orphans.
+        delete modules[id1];
+        delete bundle.cache[id1]; // Now delete the orphans.
         orphans.forEach((id)=>{
             hmrDelete(module.bundle.root, id);
         });
-    } else if (bundle.parent) hmrDelete(bundle.parent, id);
+    } else if (bundle.parent) hmrDelete(bundle.parent, id1);
 }
 function hmrAcceptCheck(bundle, id, depsByBundle) {
     if (hmrAcceptCheckOne(bundle, id, depsByBundle)) return true;
@@ -658,7 +629,7 @@ var global = arguments[3];
  * // Cancel the trailing debounced invocation.
  * jQuery(window).on('popstate', debounced.cancel);
  */ function debounce(func, wait, options) {
-    var lastArgs, lastThis, maxWait, result, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
+    var lastArgs, lastThis, maxWait, result1, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
     if (typeof func != "function") throw new TypeError(FUNC_ERROR_TEXT);
     wait = toNumber(wait) || 0;
     if (isObject(options)) {
@@ -671,8 +642,8 @@ var global = arguments[3];
         var args = lastArgs, thisArg = lastThis;
         lastArgs = lastThis = undefined;
         lastInvokeTime = time;
-        result = func.apply(thisArg, args);
-        return result;
+        result1 = func.apply(thisArg, args);
+        return result1;
     }
     function leadingEdge(time) {
         // Reset any `maxWait` timer.
@@ -680,7 +651,7 @@ var global = arguments[3];
         // Start the timer for the trailing edge.
         timerId = setTimeout(timerExpired, wait);
         // Invoke the leading edge.
-        return leading ? invokeFunc(time) : result;
+        return leading ? invokeFunc(time) : result1;
     }
     function remainingWait(time) {
         var timeSinceLastCall = time - lastCallTime, timeSinceLastInvoke = time - lastInvokeTime, result = wait - timeSinceLastCall;
@@ -705,7 +676,7 @@ var global = arguments[3];
         // debounced at least once.
         if (trailing && lastArgs) return invokeFunc(time);
         lastArgs = lastThis = undefined;
-        return result;
+        return result1;
     }
     function cancel() {
         if (timerId !== undefined) clearTimeout(timerId);
@@ -713,7 +684,7 @@ var global = arguments[3];
         lastArgs = lastCallTime = lastThis = timerId = undefined;
     }
     function flush() {
-        return timerId === undefined ? result : trailingEdge(now());
+        return timerId === undefined ? result1 : trailingEdge(now());
     }
     function debounced() {
         var time = now(), isInvoking = shouldInvoke(time);
@@ -729,7 +700,7 @@ var global = arguments[3];
             }
         }
         if (timerId === undefined) timerId = setTimeout(timerExpired, wait);
-        return result;
+        return result1;
     }
     debounced.cancel = cancel;
     debounced.flush = flush;
@@ -930,6 +901,6 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}]},["lwWqK","2KVv5"], "2KVv5", "parcelRequire4c75")
+},{}]},["dfXnt","2KVv5"], "2KVv5", "parcelRequire4c75")
 
 //# sourceMappingURL=03-feedback.fdd1ec6d.js.map

@@ -142,7 +142,7 @@
       this[globalName] = mainExports;
     }
   }
-})({"15z1C":[function(require,module,exports) {
+})({"ee16I":[function(require,module,exports) {
 "use strict";
 var global = arguments[3];
 var HMR_HOST = null;
@@ -150,7 +150,7 @@ var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
 module.bundle.HMR_BUNDLE_ID = "9968991fcc7354fd";
-/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, globalThis, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
+/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, importScripts */ /*::
 import type {
   HMRAsset,
   HMRMessage,
@@ -180,8 +180,6 @@ interface ParcelModule {
 interface ExtensionContext {
   runtime: {|
     reload(): void,
-    getURL(url: string): string;
-    getManifest(): {manifest_version: number, ...};
   |};
 }
 declare var module: {bundle: ParcelRequire, ...};
@@ -191,10 +189,6 @@ declare var HMR_ENV_HASH: string;
 declare var HMR_SECURE: boolean;
 declare var chrome: ExtensionContext;
 declare var browser: ExtensionContext;
-declare var __parcel__import__: (string) => Promise<void>;
-declare var __parcel__importScripts__: (string) => Promise<void>;
-declare var globalThis: typeof self;
-declare var ServiceWorkerGlobalScope: Object;
 */ var OVERLAY_ID = "__parcel__error__overlay__";
 var OldModule = module.bundle.Module;
 function Module(moduleName) {
@@ -225,8 +219,7 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
     var hostname = getHostname();
     var port = getPort();
     var protocol = HMR_SECURE || location.protocol == "https:" && !/localhost|127.0.0.1|0.0.0.0/.test(hostname) ? "wss" : "ws";
-    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Web extension context
-    var extCtx = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome; // Safari doesn't support sourceURL in error stacks.
+    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Safari doesn't support sourceURL in error stacks.
     // eval may also be disabled via CSP, so do a quick check.
     var supportsSourceURL = false;
     try {
@@ -254,7 +247,12 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
                     var id = assetsToAccept[i][1];
                     if (!acceptedAssets[id]) hmrAcceptRun(assetsToAccept[i][0], id);
                 }
-            } else fullReload();
+            } else if ("reload" in location) location.reload();
+            else {
+                // Web extension context
+                var ext = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome;
+                if (ext && ext.runtime && ext.runtime.reload) ext.runtime.reload();
+            }
         }
         if (data.type === "error") {
             // Log parcel errors to console
@@ -281,7 +279,7 @@ function removeErrorOverlay() {
     var overlay = document.getElementById(OVERLAY_ID);
     if (overlay) {
         overlay.remove();
-        console.log("[parcel] ✨ Error resolved");
+        console.log("[parcel] \u2728 Error resolved");
     }
 }
 function createErrorOverlay(diagnostics) {
@@ -310,10 +308,6 @@ ${frame.code}`;
     errorHTML += "</div>";
     overlay.innerHTML = errorHTML;
     return overlay;
-}
-function fullReload() {
-    if ("reload" in location) location.reload();
-    else if (extCtx && extCtx.runtime && extCtx.runtime.reload) extCtx.runtime.reload();
 }
 function getParents(bundle, id) /*: Array<[ParcelRequire, string]> */ {
     var modules = bundle.modules;
@@ -355,32 +349,6 @@ function reloadCSS() {
         cssTimeout = null;
     }, 50);
 }
-function hmrDownload(asset) {
-    if (asset.type === "js") {
-        if (typeof document !== "undefined") {
-            let script = document.createElement("script");
-            script.src = asset.url + "?t=" + Date.now();
-            if (asset.outputFormat === "esmodule") script.type = "module";
-            return new Promise((resolve, reject)=>{
-                var _document$head;
-                script.onload = ()=>resolve(script);
-                script.onerror = reject;
-                (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
-            });
-        } else if (typeof importScripts === "function") {
-            // Worker scripts
-            if (asset.outputFormat === "esmodule") return import(asset.url + "?t=" + Date.now());
-            else return new Promise((resolve, reject)=>{
-                try {
-                    importScripts(asset.url + "?t=" + Date.now());
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        }
-    }
-}
 async function hmrApplyUpdates(assets) {
     global.parcelHotUpdate = Object.create(null);
     let scriptsToRemove;
@@ -393,20 +361,24 @@ async function hmrApplyUpdates(assets) {
         // This path is also taken if a CSP disallows eval.
         if (!supportsSourceURL) {
             let promises = assets.map((asset)=>{
-                var _hmrDownload;
-                return (_hmrDownload = hmrDownload(asset)) === null || _hmrDownload === void 0 ? void 0 : _hmrDownload.catch((err)=>{
-                    // Web extension bugfix for Chromium
-                    // https://bugs.chromium.org/p/chromium/issues/detail?id=1255412#c12
-                    if (extCtx && extCtx.runtime && extCtx.runtime.getManifest().manifest_version == 3) {
-                        if (typeof ServiceWorkerGlobalScope != "undefined" && global instanceof ServiceWorkerGlobalScope) {
-                            extCtx.runtime.reload();
-                            return;
+                if (asset.type === "js") {
+                    if (typeof document !== "undefined") {
+                        let script = document.createElement("script");
+                        script.src = asset.url;
+                        return new Promise((resolve, reject)=>{
+                            var _document$head;
+                            script.onload = ()=>resolve(script);
+                            script.onerror = reject;
+                            (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
+                        });
+                    } else if (typeof importScripts === "function") return new Promise((resolve, reject)=>{
+                        try {
+                            importScripts(asset.url);
+                        } catch (err) {
+                            reject(err);
                         }
-                        asset.url = extCtx.runtime.getURL("/__parcel_hmr_proxy__?url=" + encodeURIComponent(asset.url + "?t=" + Date.now()));
-                        return hmrDownload(asset);
-                    }
-                    throw err;
-                });
+                    });
+                }
             });
             scriptsToRemove = await Promise.all(promises);
         }
@@ -443,7 +415,6 @@ function hmrApply(bundle, asset) {
             if (supportsSourceURL) // Global eval. We would use `new Function` here but browser
             // support for source maps is better with eval.
             (0, eval)(asset.output);
-             // $FlowFixMe
             let fn = global.parcelHotUpdate[asset.id];
             modules[asset.id] = [
                 fn,
@@ -452,23 +423,23 @@ function hmrApply(bundle, asset) {
         } else if (bundle.parent) hmrApply(bundle.parent, asset);
     }
 }
-function hmrDelete(bundle, id) {
+function hmrDelete(bundle, id1) {
     let modules = bundle.modules;
     if (!modules) return;
-    if (modules[id]) {
+    if (modules[id1]) {
         // Collect dependencies that will become orphaned when this module is deleted.
-        let deps = modules[id][1];
+        let deps = modules[id1][1];
         let orphans = [];
         for(let dep in deps){
             let parents = getParents(module.bundle.root, deps[dep]);
             if (parents.length === 1) orphans.push(deps[dep]);
         } // Delete the module. This must be done before deleting dependencies in case of circular dependencies.
-        delete modules[id];
-        delete bundle.cache[id]; // Now delete the orphans.
+        delete modules[id1];
+        delete bundle.cache[id1]; // Now delete the orphans.
         orphans.forEach((id)=>{
             hmrDelete(module.bundle.root, id);
         });
-    } else if (bundle.parent) hmrDelete(bundle.parent, id);
+    } else if (bundle.parent) hmrDelete(bundle.parent, id1);
 }
 function hmrAcceptCheck(bundle, id, depsByBundle) {
     if (hmrAcceptCheckOne(bundle, id, depsByBundle)) return true;
@@ -634,15 +605,15 @@ function _createClass(Constructor, protoProps, staticProps) {
  * @param {object} oEmbedParameters The oEmbed parameters.
  * @return {string}
  */ function getVimeoUrl() {
-    var oEmbedParameters = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    var id = oEmbedParameters.id;
-    var url = oEmbedParameters.url;
+    var oEmbedParameters1 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var id = oEmbedParameters1.id;
+    var url = oEmbedParameters1.url;
     var idOrUrl = id || url;
     if (!idOrUrl) throw new Error("An id or url must be passed, either in an options object or as a data-vimeo-id or data-vimeo-url attribute.");
     if (isInteger(idOrUrl)) return "https://vimeo.com/".concat(idOrUrl);
     if (isVimeoUrl(idOrUrl)) return idOrUrl.replace("http:", "https:");
-    if (id) throw new TypeError("“".concat(id, "” is not a valid video id."));
-    throw new TypeError("“".concat(idOrUrl, "” is not a vimeo.com url."));
+    if (id) throw new TypeError("\u201C".concat(id, "\u201D is not a valid video id."));
+    throw new TypeError("\u201C".concat(idOrUrl, "\u201D is not a vimeo.com url."));
 }
 var arrayIndexOfSupport = typeof Array.prototype.indexOf !== "undefined";
 var postMessageSupport = typeof window !== "undefined" && typeof window.postMessage !== "undefined";
@@ -658,8 +629,8 @@ function createCommonjsModule(fn, module) {
  * https://github.com/polygonplanet/weakmap-polyfill
  * Copyright (c) 2015-2021 polygonplanet <polygon.planet.aqua@gmail.com>
  * @license MIT
- */ (function(self1) {
-    if (self1.WeakMap) return;
+ */ (function(self) {
+    if (self.WeakMap) return;
     var hasOwnProperty = Object.prototype.hasOwnProperty;
     var hasDefine = Object.defineProperty && function() {
         try {
@@ -677,15 +648,15 @@ function createCommonjsModule(fn, module) {
         });
         else object[name] = value;
     };
-    self1.WeakMap = function() {
+    self.WeakMap = function() {
         // ECMA-262 23.3 WeakMap Objects
-        function WeakMap1() {
+        function WeakMap() {
             if (this === void 0) throw new TypeError("Constructor WeakMap requires 'new'");
             defineProperty(this, "_id", genId("_WeakMap")); // ECMA-262 23.3.1.1 WeakMap([iterable])
             if (arguments.length > 0) // Currently, WeakMap `iterable` argument is not supported
             throw new TypeError("WeakMap iterable is not supported");
         } // ECMA-262 23.3.3.2 WeakMap.prototype.delete(key)
-        defineProperty(WeakMap1.prototype, "delete", function(key) {
+        defineProperty(WeakMap.prototype, "delete", function(key) {
             checkInstance(this, "delete");
             if (!isObject(key)) return false;
             var entry = key[this._id];
@@ -695,21 +666,21 @@ function createCommonjsModule(fn, module) {
             }
             return false;
         }); // ECMA-262 23.3.3.3 WeakMap.prototype.get(key)
-        defineProperty(WeakMap1.prototype, "get", function(key) {
+        defineProperty(WeakMap.prototype, "get", function(key) {
             checkInstance(this, "get");
             if (!isObject(key)) return void 0;
             var entry = key[this._id];
             if (entry && entry[0] === key) return entry[1];
             return void 0;
         }); // ECMA-262 23.3.3.4 WeakMap.prototype.has(key)
-        defineProperty(WeakMap1.prototype, "has", function(key) {
+        defineProperty(WeakMap.prototype, "has", function(key) {
             checkInstance(this, "has");
             if (!isObject(key)) return false;
             var entry = key[this._id];
             if (entry && entry[0] === key) return true;
             return false;
         }); // ECMA-262 23.3.3.5 WeakMap.prototype.set(key, value)
-        defineProperty(WeakMap1.prototype, "set", function(key, value) {
+        defineProperty(WeakMap.prototype, "set", function(key, value) {
             checkInstance(this, "set");
             if (!isObject(key)) throw new TypeError("Invalid value used as weak map key");
             var entry = key[this._id];
@@ -732,8 +703,8 @@ function createCommonjsModule(fn, module) {
         function rand() {
             return Math.random().toString().substring(2);
         }
-        defineProperty(WeakMap1, "_polyfill", true);
-        return WeakMap1;
+        defineProperty(WeakMap, "_polyfill", true);
+        return WeakMap;
     }();
     function isObject(x) {
         return Object(x) === x;
@@ -760,7 +731,7 @@ var npo_src = createCommonjsModule(function(module) {
                     configurable: config !== false
                 });
             };
-        } catch (err) {
+        } catch (err1) {
             builtInProp = function builtInProp(obj, name, val) {
                 obj[name] = val;
                 return obj;
@@ -768,14 +739,14 @@ var npo_src = createCommonjsModule(function(module) {
         } // Note: using a queue instead of array for efficiency
         scheduling_queue = function Queue() {
             var first, last, item;
-            function Item(fn, self1) {
+            function Item(fn, self) {
                 this.fn = fn;
-                this.self = self1;
+                this.self = self;
                 this.next = void 0;
             }
             return {
-                add: function add(fn, self1) {
-                    item = new Item(fn, self1);
+                add: function add(fn, self) {
+                    item = new Item(fn, self);
                     if (last) last.next = item;
                     else first = item;
                     last = item;
@@ -791,8 +762,8 @@ var npo_src = createCommonjsModule(function(module) {
                 }
             };
         }();
-        function schedule(fn, self1) {
-            scheduling_queue.add(fn, self1);
+        function schedule(fn, self) {
+            scheduling_queue.add(fn, self);
             if (!cycle) cycle = timer(scheduling_queue.drain);
         } // promise duck typing
         function isThenable(o) {
@@ -806,13 +777,13 @@ var npo_src = createCommonjsModule(function(module) {
         } // NOTE: This is a separate function to isolate
         // the `try..catch` so that other code can be
         // optimized better
-        function notifyIsolated(self1, cb, chain) {
+        function notifyIsolated(self, cb, chain) {
             var ret, _then;
             try {
-                if (cb === false) chain.reject(self1.msg);
+                if (cb === false) chain.reject(self.msg);
                 else {
-                    if (cb === true) ret = self1.msg;
-                    else ret = cb.call(void 0, self1.msg);
+                    if (cb === true) ret = self.msg;
+                    else ret = cb.call(void 0, self.msg);
                     if (ret === chain.promise) chain.reject(TypeError("Promise-chain cycle"));
                     else if (_then = isThenable(ret)) _then.call(ret, chain.resolve, chain.reject);
                     else chain.resolve(ret);
@@ -821,61 +792,61 @@ var npo_src = createCommonjsModule(function(module) {
                 chain.reject(err);
             }
         }
-        function resolve(msg) {
-            var _then, self1 = this; // already triggered?
-            if (self1.triggered) return;
-            self1.triggered = true; // unwrap
-            if (self1.def) self1 = self1.def;
+        function resolve1(msg) {
+            var _then, self = this; // already triggered?
+            if (self.triggered) return;
+            self.triggered = true; // unwrap
+            if (self.def) self = self.def;
             try {
                 if (_then = isThenable(msg)) schedule(function() {
-                    var def_wrapper = new MakeDefWrapper(self1);
+                    var def_wrapper = new MakeDefWrapper(self);
                     try {
                         _then.call(msg, function $resolve$() {
-                            resolve.apply(def_wrapper, arguments);
+                            resolve1.apply(def_wrapper, arguments);
                         }, function $reject$() {
-                            reject.apply(def_wrapper, arguments);
+                            reject1.apply(def_wrapper, arguments);
                         });
                     } catch (err) {
-                        reject.call(def_wrapper, err);
+                        reject1.call(def_wrapper, err);
                     }
                 });
                 else {
-                    self1.msg = msg;
-                    self1.state = 1;
-                    if (self1.chain.length > 0) schedule(notify, self1);
+                    self.msg = msg;
+                    self.state = 1;
+                    if (self.chain.length > 0) schedule(notify, self);
                 }
             } catch (err) {
-                reject.call(new MakeDefWrapper(self1), err);
+                reject1.call(new MakeDefWrapper(self), err);
             }
         }
-        function reject(msg) {
-            var self1 = this; // already triggered?
-            if (self1.triggered) return;
-            self1.triggered = true; // unwrap
-            if (self1.def) self1 = self1.def;
-            self1.msg = msg;
-            self1.state = 2;
-            if (self1.chain.length > 0) schedule(notify, self1);
+        function reject1(msg) {
+            var self = this; // already triggered?
+            if (self.triggered) return;
+            self.triggered = true; // unwrap
+            if (self.def) self = self.def;
+            self.msg = msg;
+            self.state = 2;
+            if (self.chain.length > 0) schedule(notify, self);
         }
         function iteratePromises(Constructor, arr, resolver, rejecter) {
-            for(var idx = 0; idx < arr.length; idx++)(function IIFE(idx) {
+            for(var idx1 = 0; idx1 < arr.length; idx1++)(function IIFE(idx) {
                 Constructor.resolve(arr[idx]).then(function $resolver$(msg) {
                     resolver(idx, msg);
                 }, rejecter);
-            })(idx);
+            })(idx1);
         }
-        function MakeDefWrapper(self1) {
-            this.def = self1;
+        function MakeDefWrapper(self) {
+            this.def = self;
             this.triggered = false;
         }
-        function MakeDef(self1) {
-            this.promise = self1;
+        function MakeDef(self) {
+            this.promise = self;
             this.state = 0;
             this.triggered = false;
             this.chain = [];
             this.msg = void 0;
         }
-        function Promise1(executor) {
+        function Promise(executor) {
             if (typeof executor != "function") throw TypeError("Not a function");
             if (this.__NPO__ !== 0) throw TypeError("Not a promise");
              // instance shadowing the inherited "brand"
@@ -903,18 +874,18 @@ var npo_src = createCommonjsModule(function(module) {
             };
             try {
                 executor.call(void 0, function publicResolve(msg) {
-                    resolve.call(def, msg);
+                    resolve1.call(def, msg);
                 }, function publicReject(msg) {
-                    reject.call(def, msg);
+                    reject1.call(def, msg);
                 });
             } catch (err) {
-                reject.call(def, err);
+                reject1.call(def, err);
             }
         }
-        var PromisePrototype = builtInProp({}, "constructor", Promise1, /*configurable=*/ false); // Note: Android 4 cannot use `Object.defineProperty(..)` here
-        Promise1.prototype = PromisePrototype; // built-in "brand" to signal an "uninitialized" promise
+        var PromisePrototype = builtInProp({}, "constructor", Promise, /*configurable=*/ false); // Note: Android 4 cannot use `Object.defineProperty(..)` here
+        Promise.prototype = PromisePrototype; // built-in "brand" to signal an "uninitialized" promise
         builtInProp(PromisePrototype, "__NPO__", 0, /*configurable=*/ false);
-        builtInProp(Promise1, "resolve", function Promise$resolve(msg) {
+        builtInProp(Promise, "resolve", function Promise$resolve(msg) {
             var Constructor = this; // spec mandated checks
             // note: best "isPromise" check that's practical for now
             if (msg && typeof msg == "object" && msg.__NPO__ === 1) return msg;
@@ -923,13 +894,13 @@ var npo_src = createCommonjsModule(function(module) {
                 resolve(msg);
             });
         });
-        builtInProp(Promise1, "reject", function Promise$reject(msg) {
+        builtInProp(Promise, "reject", function Promise$reject(msg) {
             return new this(function executor(resolve, reject) {
                 if (typeof resolve != "function" || typeof reject != "function") throw TypeError("Not a function");
                 reject(msg);
             });
         });
-        builtInProp(Promise1, "all", function Promise$all(arr) {
+        builtInProp(Promise, "all", function Promise$all(arr) {
             var Constructor = this; // spec mandated checks
             if (ToString.call(arr) != "[object Array]") return Constructor.reject(TypeError("Not an array"));
             if (arr.length === 0) return Constructor.resolve([]);
@@ -942,7 +913,7 @@ var npo_src = createCommonjsModule(function(module) {
                 }, reject);
             });
         });
-        builtInProp(Promise1, "race", function Promise$race(arr) {
+        builtInProp(Promise, "race", function Promise$race(arr) {
             var Constructor = this; // spec mandated checks
             if (ToString.call(arr) != "[object Array]") return Constructor.reject(TypeError("Not an array"));
             return new Constructor(function executor(resolve, reject) {
@@ -952,7 +923,7 @@ var npo_src = createCommonjsModule(function(module) {
                 }, reject);
             });
         });
-        return Promise1;
+        return Promise;
     });
 });
 /**
@@ -1170,18 +1141,18 @@ var npo_src = createCommonjsModule(function(module) {
     var params = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
     var element = arguments.length > 2 ? arguments[2] : undefined;
     return new Promise(function(resolve, reject) {
-        if (!isVimeoUrl(videoUrl)) throw new TypeError("“".concat(videoUrl, "” is not a vimeo.com url."));
+        if (!isVimeoUrl(videoUrl)) throw new TypeError("\u201C".concat(videoUrl, "\u201D is not a vimeo.com url."));
         var url = "https://vimeo.com/api/oembed.json?url=".concat(encodeURIComponent(videoUrl));
         for(var param in params)if (params.hasOwnProperty(param)) url += "&".concat(param, "=").concat(encodeURIComponent(params[param]));
         var xhr = "XDomainRequest" in window ? new XDomainRequest() : new XMLHttpRequest();
         xhr.open("GET", url, true);
         xhr.onload = function() {
             if (xhr.status === 404) {
-                reject(new Error("“".concat(videoUrl, "” was not found.")));
+                reject(new Error("\u201C".concat(videoUrl, "\u201D was not found.")));
                 return;
             }
             if (xhr.status === 403) {
-                reject(new Error("“".concat(videoUrl, "” is not embeddable.")));
+                reject(new Error("\u201C".concat(videoUrl, "\u201D is not embeddable.")));
                 return;
             }
             try {
@@ -1189,7 +1160,7 @@ var npo_src = createCommonjsModule(function(module) {
                 if (json.domain_status_code === 403) {
                     // We still want to create the embed to give users visual feedback
                     createEmbed(json, element);
-                    reject(new Error("“".concat(videoUrl, "” is not embeddable.")));
+                    reject(new Error("\u201C".concat(videoUrl, "\u201D is not embeddable.")));
                     return;
                 }
                 resolve(json);
@@ -1387,32 +1358,32 @@ Terms */ function initializeScreenfull() {
         fullscreenchange: fn.fullscreenchange,
         fullscreenerror: fn.fullscreenerror
     };
-    var screenfull = {
+    var screenfull1 = {
         request: function request(element) {
             return new Promise(function(resolve, reject) {
-                var onFullScreenEntered = function onFullScreenEntered() {
-                    screenfull.off("fullscreenchange", onFullScreenEntered);
+                var onFullScreenEntered1 = function onFullScreenEntered() {
+                    screenfull1.off("fullscreenchange", onFullScreenEntered);
                     resolve();
                 };
-                screenfull.on("fullscreenchange", onFullScreenEntered);
+                screenfull1.on("fullscreenchange", onFullScreenEntered1);
                 element = element || document.documentElement;
                 var returnPromise = element[fn.requestFullscreen]();
-                if (returnPromise instanceof Promise) returnPromise.then(onFullScreenEntered).catch(reject);
+                if (returnPromise instanceof Promise) returnPromise.then(onFullScreenEntered1).catch(reject);
             });
         },
         exit: function exit() {
             return new Promise(function(resolve, reject) {
-                if (!screenfull.isFullscreen) {
+                if (!screenfull1.isFullscreen) {
                     resolve();
                     return;
                 }
-                var onFullScreenExit = function onFullScreenExit() {
-                    screenfull.off("fullscreenchange", onFullScreenExit);
+                var onFullScreenExit1 = function onFullScreenExit() {
+                    screenfull1.off("fullscreenchange", onFullScreenExit);
                     resolve();
                 };
-                screenfull.on("fullscreenchange", onFullScreenExit);
+                screenfull1.on("fullscreenchange", onFullScreenExit1);
                 var returnPromise = document[fn.exitFullscreen]();
-                if (returnPromise instanceof Promise) returnPromise.then(onFullScreenExit).catch(reject);
+                if (returnPromise instanceof Promise) returnPromise.then(onFullScreenExit1).catch(reject);
             });
         },
         on: function on(event, callback) {
@@ -1424,7 +1395,7 @@ Terms */ function initializeScreenfull() {
             if (eventName) document.removeEventListener(eventName, callback);
         }
     };
-    Object.defineProperties(screenfull, {
+    Object.defineProperties(screenfull1, {
         isFullscreen: {
             get: function get() {
                 return Boolean(document[fn.fullscreenElement]);
@@ -1444,7 +1415,7 @@ Terms */ function initializeScreenfull() {
             }
         }
     });
-    return screenfull;
+    return screenfull1;
 }
 var playerMap = new WeakMap();
 var readyMap = new WeakMap();
@@ -1457,10 +1428,10 @@ var Player = /*#__PURE__*/ function() {
    *        player iframe, and id, or a jQuery object.
    * @param {object} [options] oEmbed parameters to use when creating an embed in the element.
    * @return {Player}
-   */ function Player(element) {
+   */ function Player1(element) {
         var _this = this;
         var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
-        _classCallCheck(this, Player);
+        _classCallCheck(this, Player1);
         /* global jQuery */ if (window.jQuery && element instanceof jQuery) {
             if (element.length > 1 && window.console && console.warn) console.warn("A jQuery object with multiple elements was passed, using the first element.");
             element = element[0];
@@ -1473,7 +1444,7 @@ var Player = /*#__PURE__*/ function() {
             var iframe = element.querySelector("iframe");
             if (iframe) element = iframe;
         } // iframe url is not a Vimeo url
-        if (element.nodeName === "IFRAME" && !isVimeoUrl(element.getAttribute("src") || "")) throw new Error("The player element passed isn’t a Vimeo embed.");
+        if (element.nodeName === "IFRAME" && !isVimeoUrl(element.getAttribute("src") || "")) throw new Error("The player element passed isn\u2019t a Vimeo embed.");
          // If there is already a player object in the map, return that
         if (playerMap.has(element)) return playerMap.get(element);
         this._window = element.ownerDocument.defaultView;
@@ -1542,7 +1513,7 @@ var Player = /*#__PURE__*/ function() {
    * @param {string} name The API method to call.
    * @param {Object} [args={}] Arguments to send via postMessage.
    * @return {Promise}
-   */ _createClass(Player, [
+   */ _createClass(Player1, [
         {
             key: "callMethod",
             value: function callMethod(name) {
@@ -1979,7 +1950,7 @@ var Player = /*#__PURE__*/ function() {
             }
         }
     ]);
-    return Player;
+    return Player1;
 }(); // Setup embed only if this is not a node environment
 if (!isNode) {
     screenfull = initializeScreenfull();
@@ -2119,7 +2090,7 @@ var global = arguments[3];
  * // Cancel the trailing debounced invocation.
  * jQuery(window).on('popstate', debounced.cancel);
  */ function debounce(func, wait, options) {
-    var lastArgs, lastThis, maxWait, result, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
+    var lastArgs, lastThis, maxWait, result1, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
     if (typeof func != "function") throw new TypeError(FUNC_ERROR_TEXT);
     wait = toNumber(wait) || 0;
     if (isObject(options)) {
@@ -2132,8 +2103,8 @@ var global = arguments[3];
         var args = lastArgs, thisArg = lastThis;
         lastArgs = lastThis = undefined;
         lastInvokeTime = time;
-        result = func.apply(thisArg, args);
-        return result;
+        result1 = func.apply(thisArg, args);
+        return result1;
     }
     function leadingEdge(time) {
         // Reset any `maxWait` timer.
@@ -2141,7 +2112,7 @@ var global = arguments[3];
         // Start the timer for the trailing edge.
         timerId = setTimeout(timerExpired, wait);
         // Invoke the leading edge.
-        return leading ? invokeFunc(time) : result;
+        return leading ? invokeFunc(time) : result1;
     }
     function remainingWait(time) {
         var timeSinceLastCall = time - lastCallTime, timeSinceLastInvoke = time - lastInvokeTime, result = wait - timeSinceLastCall;
@@ -2166,7 +2137,7 @@ var global = arguments[3];
         // debounced at least once.
         if (trailing && lastArgs) return invokeFunc(time);
         lastArgs = lastThis = undefined;
-        return result;
+        return result1;
     }
     function cancel() {
         if (timerId !== undefined) clearTimeout(timerId);
@@ -2174,7 +2145,7 @@ var global = arguments[3];
         lastArgs = lastCallTime = lastThis = timerId = undefined;
     }
     function flush() {
-        return timerId === undefined ? result : trailingEdge(now());
+        return timerId === undefined ? result1 : trailingEdge(now());
     }
     function debounced() {
         var time = now(), isInvoking = shouldInvoke(time);
@@ -2190,7 +2161,7 @@ var global = arguments[3];
             }
         }
         if (timerId === undefined) timerId = setTimeout(timerExpired, wait);
-        return result;
+        return result1;
     }
     debounced.cancel = cancel;
     debounced.flush = flush;
@@ -2361,6 +2332,6 @@ var global = arguments[3];
 }
 module.exports = throttle;
 
-},{}]},["15z1C","2KCbX"], "2KCbX", "parcelRequire4c75")
+},{}]},["ee16I","2KCbX"], "2KCbX", "parcelRequire4c75")
 
 //# sourceMappingURL=02-video.cc7354fd.js.map

@@ -142,7 +142,7 @@
       this[globalName] = mainExports;
     }
   }
-})({"a1WKf":[function(require,module,exports) {
+})({"1dg96":[function(require,module,exports) {
 "use strict";
 var global = arguments[3];
 var HMR_HOST = null;
@@ -150,7 +150,7 @@ var HMR_PORT = null;
 var HMR_SECURE = false;
 var HMR_ENV_HASH = "d6ea1d42532a7575";
 module.bundle.HMR_BUNDLE_ID = "7fa2f09d3c638b0b";
-/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, globalThis, __parcel__import__, __parcel__importScripts__, ServiceWorkerGlobalScope */ /*::
+/* global HMR_HOST, HMR_PORT, HMR_ENV_HASH, HMR_SECURE, chrome, browser, importScripts */ /*::
 import type {
   HMRAsset,
   HMRMessage,
@@ -180,8 +180,6 @@ interface ParcelModule {
 interface ExtensionContext {
   runtime: {|
     reload(): void,
-    getURL(url: string): string;
-    getManifest(): {manifest_version: number, ...};
   |};
 }
 declare var module: {bundle: ParcelRequire, ...};
@@ -191,10 +189,6 @@ declare var HMR_ENV_HASH: string;
 declare var HMR_SECURE: boolean;
 declare var chrome: ExtensionContext;
 declare var browser: ExtensionContext;
-declare var __parcel__import__: (string) => Promise<void>;
-declare var __parcel__importScripts__: (string) => Promise<void>;
-declare var globalThis: typeof self;
-declare var ServiceWorkerGlobalScope: Object;
 */ var OVERLAY_ID = "__parcel__error__overlay__";
 var OldModule = module.bundle.Module;
 function Module(moduleName) {
@@ -225,8 +219,7 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
     var hostname = getHostname();
     var port = getPort();
     var protocol = HMR_SECURE || location.protocol == "https:" && !/localhost|127.0.0.1|0.0.0.0/.test(hostname) ? "wss" : "ws";
-    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Web extension context
-    var extCtx = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome; // Safari doesn't support sourceURL in error stacks.
+    var ws = new WebSocket(protocol + "://" + hostname + (port ? ":" + port : "") + "/"); // Safari doesn't support sourceURL in error stacks.
     // eval may also be disabled via CSP, so do a quick check.
     var supportsSourceURL = false;
     try {
@@ -254,7 +247,12 @@ if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== "undefined") {
                     var id = assetsToAccept[i][1];
                     if (!acceptedAssets[id]) hmrAcceptRun(assetsToAccept[i][0], id);
                 }
-            } else fullReload();
+            } else if ("reload" in location) location.reload();
+            else {
+                // Web extension context
+                var ext = typeof chrome === "undefined" ? typeof browser === "undefined" ? null : browser : chrome;
+                if (ext && ext.runtime && ext.runtime.reload) ext.runtime.reload();
+            }
         }
         if (data.type === "error") {
             // Log parcel errors to console
@@ -281,7 +279,7 @@ function removeErrorOverlay() {
     var overlay = document.getElementById(OVERLAY_ID);
     if (overlay) {
         overlay.remove();
-        console.log("[parcel] ✨ Error resolved");
+        console.log("[parcel] \u2728 Error resolved");
     }
 }
 function createErrorOverlay(diagnostics) {
@@ -310,10 +308,6 @@ ${frame.code}`;
     errorHTML += "</div>";
     overlay.innerHTML = errorHTML;
     return overlay;
-}
-function fullReload() {
-    if ("reload" in location) location.reload();
-    else if (extCtx && extCtx.runtime && extCtx.runtime.reload) extCtx.runtime.reload();
 }
 function getParents(bundle, id) /*: Array<[ParcelRequire, string]> */ {
     var modules = bundle.modules;
@@ -355,32 +349,6 @@ function reloadCSS() {
         cssTimeout = null;
     }, 50);
 }
-function hmrDownload(asset) {
-    if (asset.type === "js") {
-        if (typeof document !== "undefined") {
-            let script = document.createElement("script");
-            script.src = asset.url + "?t=" + Date.now();
-            if (asset.outputFormat === "esmodule") script.type = "module";
-            return new Promise((resolve, reject)=>{
-                var _document$head;
-                script.onload = ()=>resolve(script);
-                script.onerror = reject;
-                (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
-            });
-        } else if (typeof importScripts === "function") {
-            // Worker scripts
-            if (asset.outputFormat === "esmodule") return import(asset.url + "?t=" + Date.now());
-            else return new Promise((resolve, reject)=>{
-                try {
-                    importScripts(asset.url + "?t=" + Date.now());
-                    resolve();
-                } catch (err) {
-                    reject(err);
-                }
-            });
-        }
-    }
-}
 async function hmrApplyUpdates(assets) {
     global.parcelHotUpdate = Object.create(null);
     let scriptsToRemove;
@@ -393,20 +361,24 @@ async function hmrApplyUpdates(assets) {
         // This path is also taken if a CSP disallows eval.
         if (!supportsSourceURL) {
             let promises = assets.map((asset)=>{
-                var _hmrDownload;
-                return (_hmrDownload = hmrDownload(asset)) === null || _hmrDownload === void 0 ? void 0 : _hmrDownload.catch((err)=>{
-                    // Web extension bugfix for Chromium
-                    // https://bugs.chromium.org/p/chromium/issues/detail?id=1255412#c12
-                    if (extCtx && extCtx.runtime && extCtx.runtime.getManifest().manifest_version == 3) {
-                        if (typeof ServiceWorkerGlobalScope != "undefined" && global instanceof ServiceWorkerGlobalScope) {
-                            extCtx.runtime.reload();
-                            return;
+                if (asset.type === "js") {
+                    if (typeof document !== "undefined") {
+                        let script = document.createElement("script");
+                        script.src = asset.url;
+                        return new Promise((resolve, reject)=>{
+                            var _document$head;
+                            script.onload = ()=>resolve(script);
+                            script.onerror = reject;
+                            (_document$head = document.head) === null || _document$head === void 0 || _document$head.appendChild(script);
+                        });
+                    } else if (typeof importScripts === "function") return new Promise((resolve, reject)=>{
+                        try {
+                            importScripts(asset.url);
+                        } catch (err) {
+                            reject(err);
                         }
-                        asset.url = extCtx.runtime.getURL("/__parcel_hmr_proxy__?url=" + encodeURIComponent(asset.url + "?t=" + Date.now()));
-                        return hmrDownload(asset);
-                    }
-                    throw err;
-                });
+                    });
+                }
             });
             scriptsToRemove = await Promise.all(promises);
         }
@@ -443,7 +415,6 @@ function hmrApply(bundle, asset) {
             if (supportsSourceURL) // Global eval. We would use `new Function` here but browser
             // support for source maps is better with eval.
             (0, eval)(asset.output);
-             // $FlowFixMe
             let fn = global.parcelHotUpdate[asset.id];
             modules[asset.id] = [
                 fn,
@@ -452,23 +423,23 @@ function hmrApply(bundle, asset) {
         } else if (bundle.parent) hmrApply(bundle.parent, asset);
     }
 }
-function hmrDelete(bundle, id) {
+function hmrDelete(bundle, id1) {
     let modules = bundle.modules;
     if (!modules) return;
-    if (modules[id]) {
+    if (modules[id1]) {
         // Collect dependencies that will become orphaned when this module is deleted.
-        let deps = modules[id][1];
+        let deps = modules[id1][1];
         let orphans = [];
         for(let dep in deps){
             let parents = getParents(module.bundle.root, deps[dep]);
             if (parents.length === 1) orphans.push(deps[dep]);
         } // Delete the module. This must be done before deleting dependencies in case of circular dependencies.
-        delete modules[id];
-        delete bundle.cache[id]; // Now delete the orphans.
+        delete modules[id1];
+        delete bundle.cache[id1]; // Now delete the orphans.
         orphans.forEach((id)=>{
             hmrDelete(module.bundle.root, id);
         });
-    } else if (bundle.parent) hmrDelete(bundle.parent, id);
+    } else if (bundle.parent) hmrDelete(bundle.parent, id1);
 }
 function hmrAcceptCheck(bundle, id, depsByBundle) {
     if (hmrAcceptCheckOne(bundle, id, depsByBundle)) return true;
@@ -533,6 +504,7 @@ function hmrAcceptRun(bundle, id) {
 
 },{}],"9de4I":[function(require,module,exports) {
 var _galleryItemsJs = require("./gallery-items.js");
+var _basiclightbox = require("basiclightbox");
 // Change code below this line
 const galleryImg = document.querySelector(".gallery");
 const imagesMarkup = (0, _galleryItemsJs.galleryItems).map(({ preview , original , description  })=>`<div class = "gallery__item">
@@ -544,12 +516,12 @@ const imagesMarkup = (0, _galleryItemsJs.galleryItems).map(({ preview , original
 </a></div>`).join("");
 galleryImg.insertAdjacentHTML("afterbegin", imagesMarkup);
 galleryImg.addEventListener("click", onImagesClick);
-function onImagesClick(event) {
-    event.preventDefault();
-    if (!event.target.classList.contains("gallery__image")) return;
+function onImagesClick(event1) {
+    event1.preventDefault();
+    if (!event1.target.classList.contains("gallery__image")) return;
     galleryImg.addEventListener("click", onImagesClick);
-    const modalWindow = basicLightbox.create(`<div class = "modal">
- <img src = "${event.target.dataset.source}" width = "800" height = "600">
+    const modalWindow1 = _basiclightbox.create(`<div class = "modal">
+ <img src = "${event1.target.dataset.source}" width = "800" height = "600">
 </div>`, {
         onShow: (modalWindow)=>{
             window.addEventListener("keydown", onKeyboardClick);
@@ -560,13 +532,13 @@ function onImagesClick(event) {
             console.log("onClose", modalWindow);
         }
     });
-    modalWindow.show();
+    modalWindow1.show();
     function onKeyboardClick(event) {
-        if (event.code === "Escape") modalWindow.close();
+        if (event.code === "Escape") modalWindow1.close();
     }
 }
 
-},{"./gallery-items.js":"e9dXm"}],"e9dXm":[function(require,module,exports) {
+},{"./gallery-items.js":"e9dXm","basiclightbox":"h9e8q"}],"e9dXm":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "galleryItems", ()=>galleryItems);
@@ -648,6 +620,111 @@ exports.export = function(dest, destName, get) {
     });
 };
 
-},{}]},["a1WKf","9de4I"], "9de4I", "parcelRequire4c75")
+},{}],"h9e8q":[function(require,module,exports) {
+!function(e) {
+    module.exports = e();
+}(function() {
+    return (function e1(n, t, o) {
+        function r(c, u) {
+            if (!t[c]) {
+                if (!n[c]) {
+                    var s = undefined;
+                    if (!u && s) return s(c, !0);
+                    if (i) return i(c, !0);
+                    var a = new Error("Cannot find module '" + c + "'");
+                    throw a.code = "MODULE_NOT_FOUND", a;
+                }
+                var l = t[c] = {
+                    exports: {}
+                };
+                n[c][0].call(l.exports, function(e) {
+                    return r(n[c][1][e] || e);
+                }, l, l.exports, e1, n, t, o);
+            }
+            return t[c].exports;
+        }
+        for(var i = undefined, c1 = 0; c1 < o.length; c1++)r(o[c1]);
+        return r;
+    })({
+        1: [
+            function(e2, n1, t1) {
+                "use strict";
+                Object.defineProperty(t1, "__esModule", {
+                    value: !0
+                }), t1.create = t1.visible = void 0;
+                var o = function(e) {
+                    var n = arguments.length > 1 && void 0 !== arguments[1] && arguments[1], t = document.createElement("div");
+                    return t.innerHTML = e.trim(), !0 === n ? t.children : t.firstChild;
+                }, r = function(e, n) {
+                    var t = e.children;
+                    return 1 === t.length && t[0].tagName === n;
+                }, i1 = function(e) {
+                    return null != (e = e || document.querySelector(".basicLightbox")) && !0 === e.ownerDocument.body.contains(e);
+                };
+                t1.visible = i1;
+                t1.create = function(e3, n2) {
+                    var t2 = function(e4, n) {
+                        var t = o('\n		<div class="basicLightbox '.concat(n.className, '">\n			<div class="basicLightbox__placeholder" role="dialog"></div>\n		</div>\n	')), i = t.querySelector(".basicLightbox__placeholder");
+                        e4.forEach(function(e) {
+                            return i.appendChild(e);
+                        });
+                        var c = r(i, "IMG"), u = r(i, "VIDEO"), s = r(i, "IFRAME");
+                        return !0 === c && t.classList.add("basicLightbox--img"), !0 === u && t.classList.add("basicLightbox--video"), !0 === s && t.classList.add("basicLightbox--iframe"), t;
+                    }(e3 = function(e) {
+                        var n = "string" == typeof e, t = e instanceof HTMLElement == 1;
+                        if (!1 === n && !1 === t) throw new Error("Content must be a DOM element/node or string");
+                        return !0 === n ? Array.from(o(e, !0)) : "TEMPLATE" === e.tagName ? [
+                            e.content.cloneNode(!0)
+                        ] : Array.from(e.children);
+                    }(e3), n2 = function() {
+                        var e = arguments.length > 0 && void 0 !== arguments[0] ? arguments[0] : {};
+                        if (null == (e = Object.assign({}, e)).closable && (e.closable = !0), null == e.className && (e.className = ""), null == e.onShow && (e.onShow = function() {}), null == e.onClose && (e.onClose = function() {}), "boolean" != typeof e.closable) throw new Error("Property `closable` must be a boolean");
+                        if ("string" != typeof e.className) throw new Error("Property `className` must be a string");
+                        if ("function" != typeof e.onShow) throw new Error("Property `onShow` must be a function");
+                        if ("function" != typeof e.onClose) throw new Error("Property `onClose` must be a function");
+                        return e;
+                    }(n2)), c2 = function(e5) {
+                        return !1 !== n2.onClose(u1) && function(e, n) {
+                            return e.classList.remove("basicLightbox--visible"), setTimeout(function() {
+                                return !1 === i1(e) || e.parentElement.removeChild(e), n();
+                            }, 410), !0;
+                        }(t2, function() {
+                            if ("function" == typeof e5) return e5(u1);
+                        });
+                    };
+                    !0 === n2.closable && t2.addEventListener("click", function(e) {
+                        e.target === t2 && c2();
+                    });
+                    var u1 = {
+                        element: function() {
+                            return t2;
+                        },
+                        visible: function() {
+                            return i1(t2);
+                        },
+                        show: function(e6) {
+                            return !1 !== n2.onShow(u1) && function(e, n) {
+                                return document.body.appendChild(e), setTimeout(function() {
+                                    requestAnimationFrame(function() {
+                                        return e.classList.add("basicLightbox--visible"), n();
+                                    });
+                                }, 10), !0;
+                            }(t2, function() {
+                                if ("function" == typeof e6) return e6(u1);
+                            });
+                        },
+                        close: c2
+                    };
+                    return u1;
+                };
+            },
+            {}
+        ]
+    }, {}, [
+        1
+    ])(1);
+});
+
+},{}]},["1dg96","9de4I"], "9de4I", "parcelRequire4c75")
 
 //# sourceMappingURL=01-gallery.3c638b0b.js.map
