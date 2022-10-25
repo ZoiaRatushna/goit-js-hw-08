@@ -2,9 +2,10 @@
   "name": "goit-js-hw-08",
   "version": "1.0.0",
   "description": "",
+    "homepage": "https://ZoiaRatushna.github.io/goit-js-hw-08",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build *.html --public-url git+https://github.com/ZoiaRatushna/goit-js-hw-08/"
+    "build": "parcel build *.html --public-url /goit-js-hw-08/"
   },
   "repository": {
     "type": "git",
@@ -15,7 +16,6 @@
   "bugs": {
     "url": "https://github.com/ZoiaRatushna/goit-js-hw-08/issues"
   },
-  "homepage": "https://github.com/ZoiaRatushna/goit-js-hw-08",
   "keywords": [],
   "dependencies": {
     "@types/lodash.throttle": "^4.1.7",
