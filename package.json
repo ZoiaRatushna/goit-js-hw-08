@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build *.html --public-url /parcel-project-template/"
+    "build": "parcel build *.html --public-url /goit-js-hw-08/"
   },
   "repository": {
     "type": "git",
@@ -15,7 +15,7 @@
   "bugs": {
     "url": "https://github.com/ZoiaRatushna/goit-js-hw-08/issues"
   },
-  "homepage": "https://github.com/ZoiaRatushna/goit-js-hw-08#readme",
+  "homepage": "https://github.com/ZoiaRatushna/goit-js-hw-08",
   "keywords": [],
   "dependencies": {
     "@types/lodash.throttle": "^4.1.7",
