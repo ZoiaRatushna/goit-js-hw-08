@@ -3,9 +3,9 @@ import Player from '@vimeo/player';
 const _ = require('lodash.throttle');
 
 const iframe = document.querySelector('iframe');
-const player = new Vimeo.Player(iframe);
+const player = new Player(iframe);
 
-myStorage = window.localStorage;
+const localStorage = window.localStorage;
 let needTime = localStorage.getItem('videoplayer-current-time');
 
 if (needTime) {
